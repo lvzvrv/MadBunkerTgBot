@@ -1,0 +1,17 @@
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\bin\Debug\net8.0\bunker_tg_bot.exe
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\bin\Debug\net8.0\bunker_tg_bot.deps.json
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\bin\Debug\net8.0\bunker_tg_bot.runtimeconfig.json
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\bin\Debug\net8.0\bunker_tg_bot.dll
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\bin\Debug\net8.0\bunker_tg_bot.pdb
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.GeneratedMSBuildEditorConfig.editorconfig
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.AssemblyInfoInputs.cache
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.AssemblyInfo.cs
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.csproj.CoreCompileInputs.cache
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.dll
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\refint\bunker_tg_bot.dll
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.pdb
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.genruntimeconfig.cache
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\ref\bunker_tg_bot.dll
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\bin\Debug\net8.0\Telegram.Bot.dll
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_tg_bot.csproj.AssemblyReference.cache
+D:\bunkertg\bunker_tg_bot\bunker_tg_bot\obj\Debug\net8.0\bunker_t.F215E165.Up2Date
