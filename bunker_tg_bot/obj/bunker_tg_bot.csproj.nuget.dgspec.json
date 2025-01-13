@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\bunkertg\\bunker_tg_bot\\bunker_tg_bot\\bunker_tg_bot.csproj": {}
+    "D:\\bunkertg\\MadBunkerTgBot-main\\bunker_tg_bot\\bunker_tg_bot.csproj": {}
   },
   "projects": {
-    "D:\\bunkertg\\bunker_tg_bot\\bunker_tg_bot\\bunker_tg_bot.csproj": {
+    "D:\\bunkertg\\MadBunkerTgBot-main\\bunker_tg_bot\\bunker_tg_bot.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\bunkertg\\bunker_tg_bot\\bunker_tg_bot\\bunker_tg_bot.csproj",
+        "projectUniqueName": "D:\\bunkertg\\MadBunkerTgBot-main\\bunker_tg_bot\\bunker_tg_bot.csproj",
         "projectName": "bunker_tg_bot",
-        "projectPath": "D:\\bunkertg\\bunker_tg_bot\\bunker_tg_bot\\bunker_tg_bot.csproj",
+        "projectPath": "D:\\bunkertg\\MadBunkerTgBot-main\\bunker_tg_bot\\bunker_tg_bot.csproj",
         "packagesPath": "C:\\Users\\Artem\\.nuget\\packages\\",
-        "outputPath": "D:\\bunkertg\\bunker_tg_bot\\bunker_tg_bot\\obj\\",
+        "outputPath": "D:\\bunkertg\\MadBunkerTgBot-main\\bunker_tg_bot\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
