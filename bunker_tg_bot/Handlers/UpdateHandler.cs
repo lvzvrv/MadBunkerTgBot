@@ -8,11 +8,14 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 using bunker_tg_bot.Models;
 using bunker_tg_bot.Utilities;
+using System.Collections.Concurrent;
 
 namespace bunker_tg_bot.Handlers
 {
     public static class UpdateHandler
     {
+        private static readonly ConcurrentDictionary<string, string> UserNames = new();
+
         public static async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
             if (update.Message is { } message && message.Text is { } messageText)
@@ -27,6 +30,7 @@ namespace bunker_tg_bot.Handlers
                 else if (messageText == "Создать комнату")
                 {
                     await CommandHandler.CreateRoomCommand(botClient, chatId, userName, cancellationToken);
+                    await CommandHandler.SelectGameModeCommand(botClient, chatId, cancellationToken);
                 }
                 else if (messageText == "Присоединиться")
                 {
@@ -65,6 +69,10 @@ namespace bunker_tg_bot.Handlers
                     {
                         await HandleCharacterAttributeInput(botClient, chatId, room, messageText, cancellationToken);
                     }
+                    else if (!room.GameStarted && room.HostId == chatId)
+                    {
+                        await RoomManager.HandleGameModeSelection(botClient, chatId, messageText, cancellationToken);
+                    }
                 }
                 else
                 {
@@ -75,9 +83,10 @@ namespace bunker_tg_bot.Handlers
 
         private static async Task HandleCharacterAttributeInput(ITelegramBotClient botClient, long chatId, Room room, string messageText, CancellationToken cancellationToken)
         {
-            if (!room.UserNames.ContainsKey(chatId))
+            if (!UserNames.ContainsKey(chatId.ToString()))
             {
-                room.UserNames[chatId] = messageText;
+                UserNames[chatId.ToString()] = messageText;
+                Console.WriteLine($"[LOG] Пользователь @{chatId} ввел имя: {messageText}");
                 await botClient.SendTextMessageAsync(chatId, "Введите ваше состояние здоровья.", cancellationToken: cancellationToken);
                 return;
             }
@@ -100,88 +109,215 @@ namespace bunker_tg_bot.Handlers
 
             var character = room.UserCharacters[chatId];
 
-            if (character is Character)
+            switch (room.GameMode)
             {
-                if (string.IsNullOrEmpty(character.HealthStatus))
-                {
-                    character.HealthStatus = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите вашу работу.", cancellationToken: cancellationToken);
-                }
-                else if (string.IsNullOrEmpty(character.Job))
-                {
-                    character.Job = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите ваш багаж.", cancellationToken: cancellationToken);
-                }
-                else if (string.IsNullOrEmpty(character.Baggage))
-                {
-                    character.Baggage = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите ваше уникальное знание.", cancellationToken: cancellationToken);
-                }
-                else if (string.IsNullOrEmpty(character.UniqueKnowledge))
-                {
-                    character.UniqueKnowledge = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите ваш возраст.", cancellationToken: cancellationToken);
-                }
-                else if (character.Age == 0)
-                {
-                    if (int.TryParse(messageText, out int age))
-                    {
-                        character.Age = age;
-                        await botClient.SendTextMessageAsync(chatId, "Введите ваш пол.", cancellationToken: cancellationToken);
-                    }
-                    else
-                    {
-                        await botClient.SendTextMessageAsync(chatId, "Пожалуйста, введите корректный возраст.", cancellationToken: cancellationToken);
-                    }
-                }
-                else if (string.IsNullOrEmpty(character.Gender))
-                {
-                    character.Gender = messageText;
-                    await SendCharacterCard(botClient, chatId, character, cancellationToken);
-                }
+                case GameMode.Quick:
+                    await HandleQuickModeInput(botClient, chatId, character, messageText, cancellationToken);
+                    break;
+                case GameMode.Medium:
+                    await HandleMediumModeInput(botClient, chatId, character as MediumCharacter, messageText, cancellationToken);
+                    break;
+                case GameMode.Detailed:
+                    await HandleDetailedModeInput(botClient, chatId, character as DetailedCharacter, messageText, cancellationToken);
+                    break;
             }
+        }
 
-            if (character is MediumCharacter mediumCharacter)
+        private static async Task HandleQuickModeInput(ITelegramBotClient botClient, long chatId, Character character, string messageText, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(character.HealthStatus))
             {
-                if (string.IsNullOrEmpty(mediumCharacter.Race))
-                {
-                    mediumCharacter.Race = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите вашу фобию.", cancellationToken: cancellationToken);
-                }
-                else if (string.IsNullOrEmpty(mediumCharacter.Phobia))
-                {
-                    mediumCharacter.Phobia = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите ваш характер.", cancellationToken: cancellationToken);
-                }
-                else if (string.IsNullOrEmpty(mediumCharacter.Personality))
-                {
-                    mediumCharacter.Personality = messageText;
-                    await SendCharacterCard(botClient, chatId, mediumCharacter, cancellationToken);
-                }
+                character.HealthStatus = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите вашу работу.", cancellationToken: cancellationToken);
+                return;
             }
-
-            if (character is DetailedCharacter detailedCharacter)
+            if (string.IsNullOrEmpty(character.Job))
             {
-                if (string.IsNullOrEmpty(detailedCharacter.Hobby))
+                character.Job = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш багаж.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Baggage))
+            {
+                character.Baggage = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше уникальное знание.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.UniqueKnowledge))
+            {
+                character.UniqueKnowledge = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш возраст.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (character.Age == 0)
+            {
+                if (int.TryParse(messageText, out int age))
                 {
-                    detailedCharacter.Hobby = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите ваше телосложение.", cancellationToken: cancellationToken);
+                    character.Age = age;
+                    await botClient.SendTextMessageAsync(chatId, "Введите ваш пол.", cancellationToken: cancellationToken);
                 }
-                else if (string.IsNullOrEmpty(detailedCharacter.BodyType))
+                else
                 {
-                    detailedCharacter.BodyType = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите факт 1 о вас.", cancellationToken: cancellationToken);
+                    await botClient.SendTextMessageAsync(chatId, "Пожалуйста, введите корректный возраст.", cancellationToken: cancellationToken);
                 }
-                else if (string.IsNullOrEmpty(detailedCharacter.Fact1))
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Gender))
+            {
+                character.Gender = messageText;
+                await SendCharacterCard(botClient, chatId, character, cancellationToken);
+            }
+        }
+
+        private static async Task HandleMediumModeInput(ITelegramBotClient botClient, long chatId, MediumCharacter character, string messageText, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(character.HealthStatus))
+            {
+                character.HealthStatus = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите вашу работу.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Job))
+            {
+                character.Job = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш багаж.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Baggage))
+            {
+                character.Baggage = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше уникальное знание.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.UniqueKnowledge))
+            {
+                character.UniqueKnowledge = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш возраст.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (character.Age == 0)
+            {
+                if (int.TryParse(messageText, out int age))
                 {
-                    detailedCharacter.Fact1 = messageText;
-                    await botClient.SendTextMessageAsync(chatId, "Введите факт 2 о вас.", cancellationToken: cancellationToken);
+                    character.Age = age;
+                    await botClient.SendTextMessageAsync(chatId, "Введите ваш пол.", cancellationToken: cancellationToken);
                 }
-                else if (string.IsNullOrEmpty(detailedCharacter.Fact2))
+                else
                 {
-                    detailedCharacter.Fact2 = messageText;
-                    await SendCharacterCard(botClient, chatId, detailedCharacter, cancellationToken);
+                    await botClient.SendTextMessageAsync(chatId, "Пожалуйста, введите корректный возраст.", cancellationToken: cancellationToken);
                 }
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Gender))
+            {
+                character.Gender = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите вашу расу.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Race))
+            {
+                character.Race = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите вашу фобию.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Phobia))
+            {
+                character.Phobia = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш характер.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Personality))
+            {
+                character.Personality = messageText;
+                await SendCharacterCard(botClient, chatId, character, cancellationToken);
+            }
+        }
+
+        private static async Task HandleDetailedModeInput(ITelegramBotClient botClient, long chatId, DetailedCharacter character, string messageText, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(character.HealthStatus))
+            {
+                character.HealthStatus = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите вашу работу.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Job))
+            {
+                character.Job = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш багаж.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Baggage))
+            {
+                character.Baggage = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше уникальное знание.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.UniqueKnowledge))
+            {
+                character.UniqueKnowledge = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш возраст.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (character.Age == 0)
+            {
+                if (int.TryParse(messageText, out int age))
+                {
+                    character.Age = age;
+                    await botClient.SendTextMessageAsync(chatId, "Введите ваш пол.", cancellationToken: cancellationToken);
+                }
+                else
+                {
+                    await botClient.SendTextMessageAsync(chatId, "Пожалуйста, введите корректный возраст.", cancellationToken: cancellationToken);
+                }
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Gender))
+            {
+                character.Gender = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите вашу расу.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Race))
+            {
+                character.Race = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите вашу фобию.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Phobia))
+            {
+                character.Phobia = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваш характер.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Personality))
+            {
+                character.Personality = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше хобби.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Hobby))
+            {
+                character.Hobby = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше телосложение.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.BodyType))
+            {
+                character.BodyType = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите факт 1 о вас.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Fact1))
+            {
+                character.Fact1 = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите факт 2 о вас.", cancellationToken: cancellationToken);
+                return;
+            }
+            if (string.IsNullOrEmpty(character.Fact2))
+            {
+                character.Fact2 = messageText;
+                await SendCharacterCard(botClient, chatId, character, cancellationToken);
             }
         }
 
@@ -192,7 +328,8 @@ namespace bunker_tg_bot.Handlers
 
             var buttons = new ReplyKeyboardMarkup(new[]
             {
-                new KeyboardButton[] { "Сохранить", "Изменить данные" }
+                new KeyboardButton("Сохранить"),
+                new KeyboardButton("Изменить данные")
             })
             {
                 ResizeKeyboard = true,
@@ -222,7 +359,10 @@ namespace bunker_tg_bot.Handlers
             {
                 var character = room.UserCharacters[chatId];
                 var buttons = new ReplyKeyboardMarkup(character.GetType().GetProperties()
-                    .Select(p => new KeyboardButton($"Изменить {p.Name}")).Append(new KeyboardButton("Сохранить")).ToArray())
+                    .Select(p => new KeyboardButton(GetRussianPropertyName(p.Name)))
+                    .Select(p => new[] { p })
+                    .Append(new[] { new KeyboardButton("Сохранить") })
+                    .ToArray())
                 {
                     ResizeKeyboard = true,
                     OneTimeKeyboard = true
@@ -238,30 +378,29 @@ namespace bunker_tg_bot.Handlers
             }
             else if (room.UserEditState.TryGetValue(chatId, out var propertyName))
             {
-                var character = room.UserCharacters[chatId];
-                var property = character.GetType().GetProperty(propertyName);
-                if (property != null)
-                {
-                    if (property.PropertyType == typeof(int))
-                    {
-                        if (int.TryParse(messageText, out var intValue))
-                        {
-                            property.SetValue(character, intValue);
-                        }
-                        else
-                        {
-                            await botClient.SendTextMessageAsync(chatId, "Пожалуйста, введите корректное значение.", cancellationToken: cancellationToken);
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        property.SetValue(character, messageText);
-                    }
-                }
-                room.UserEditState.TryRemove(chatId, out _);
-                await SendCharacterCard(botClient, chatId, character, cancellationToken);
+                await room.SaveChangesAsync(botClient, chatId, messageText, cancellationToken);
             }
+        }
+
+        private static string GetRussianPropertyName(string propertyName)
+        {
+            return propertyName switch
+            {
+                "HealthStatus" => "Изменить состояние здоровья",
+                "Job" => "Изменить работу",
+                "Baggage" => "Изменить багаж",
+                "UniqueKnowledge" => "Изменить уникальное знание",
+                "Age" => "Изменить возраст",
+                "Gender" => "Изменить пол",
+                "Race" => "Изменить расу",
+                "Phobia" => "Изменить фобию",
+                "Personality" => "Изменить характер",
+                "Hobby" => "Изменить хобби",
+                "BodyType" => "Изменить телосложение",
+                "Fact1" => "Изменить факт 1",
+                "Fact2" => "Изменить факт 2",
+                _ => propertyName
+            };
         }
 
         private static string SerializeCharacter(Character character)
@@ -276,3 +415,5 @@ namespace bunker_tg_bot.Handlers
         }
     }
 }
+
+

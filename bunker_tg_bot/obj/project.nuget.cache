@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "pAAFVcYJSQ4=",
+  "dgSpecHash": "06MGATpCLMQ=",
   "success": true,
-  "projectFilePath": "D:\\bunkertg\\MadBunkerTgBot-main\\bunker_tg_bot\\bunker_tg_bot.csproj",
+  "projectFilePath": "D:\\bunkertg\\newtry\\MadBunkerTgBot-main\\bunker_tg_bot\\bunker_tg_bot.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Artem\\.nuget\\packages\\microsoft.extensions.configuration.abstractions\\8.0.0\\microsoft.extensions.configuration.abstractions.8.0.0.nupkg.sha512",
     "C:\\Users\\Artem\\.nuget\\packages\\microsoft.extensions.configuration.binder\\8.0.0\\microsoft.extensions.configuration.binder.8.0.0.nupkg.sha512",

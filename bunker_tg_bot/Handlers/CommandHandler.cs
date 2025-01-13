@@ -74,6 +74,28 @@ namespace bunker_tg_bot.Handlers
             );
         }
 
+        public static async Task SelectGameModeCommand(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
+        {
+            var buttons = new ReplyKeyboardMarkup(new[]
+            {
+        new KeyboardButton[] { "Быстрая", "Средняя", "Подробная" }
+    })
+            {
+                ResizeKeyboard = true,
+                OneTimeKeyboard = true
+            };
+
+            await botClient.SendTextMessageAsync(
+                chatId,
+                "Выберите режим игры:",
+                replyMarkup: buttons,
+                cancellationToken: cancellationToken
+            );
+        }
+
+
+
+
         public static async Task JoinRoomCommand(ITelegramBotClient botClient, long chatId, string userName, string messageText, CancellationToken cancellationToken)
         {
             if (RoomManager.UserRoomMap.ContainsKey(chatId))
