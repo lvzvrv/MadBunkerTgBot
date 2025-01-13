@@ -32,7 +32,7 @@ namespace bunker_tg_bot.Handlers
 
         public static async Task CreateRoomCommand(ITelegramBotClient botClient, long chatId, string userName, CancellationToken cancellationToken)
         {
-            if (RoomManager.UserRoomMap.ContainsKey(chatId))
+            if (Room.UserRoomMap.ContainsKey(chatId))
             {
                 await botClient.SendTextMessageAsync(
                     chatId,
@@ -43,9 +43,9 @@ namespace bunker_tg_bot.Handlers
             }
 
             string roomId = new Random().Next(100000, 999999).ToString();
-            RoomManager.Rooms[roomId] = new Room(chatId);
-            RoomManager.Rooms[roomId].Participants.Add(chatId);
-            RoomManager.UserRoomMap[chatId] = roomId;
+            Room.Rooms[roomId] = new Room(chatId);
+            Room.Rooms[roomId].Participants.Add(chatId);
+            Room.UserRoomMap[chatId] = roomId;
 
             var buttons = new ReplyKeyboardMarkup(new[]
             {
@@ -78,8 +78,8 @@ namespace bunker_tg_bot.Handlers
         {
             var buttons = new ReplyKeyboardMarkup(new[]
             {
-        new KeyboardButton[] { "Быстрая", "Средняя", "Подробная" }
-    })
+                new KeyboardButton[] { "Быстрая", "Средняя", "Подробная" }
+            })
             {
                 ResizeKeyboard = true,
                 OneTimeKeyboard = true
@@ -93,12 +93,9 @@ namespace bunker_tg_bot.Handlers
             );
         }
 
-
-
-
         public static async Task JoinRoomCommand(ITelegramBotClient botClient, long chatId, string userName, string messageText, CancellationToken cancellationToken)
         {
-            if (RoomManager.UserRoomMap.ContainsKey(chatId))
+            if (Room.UserRoomMap.ContainsKey(chatId))
             {
                 await botClient.SendTextMessageAsync(
                     chatId,
@@ -109,14 +106,14 @@ namespace bunker_tg_bot.Handlers
             }
 
             var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != 2 || !RoomManager.Rooms.ContainsKey(parts[1]))
+            if (parts.Length != 2 || !Room.Rooms.ContainsKey(parts[1]))
             {
                 await botClient.SendTextMessageAsync(chatId, "Комната с таким ID не найдена.", cancellationToken: cancellationToken);
                 return;
             }
 
             string roomId = parts[1];
-            if (RoomManager.Rooms.TryGetValue(roomId, out var room))
+            if (Room.Rooms.TryGetValue(roomId, out var room))
             {
                 if (room.GameStarted)
                 {
@@ -127,7 +124,7 @@ namespace bunker_tg_bot.Handlers
                 if (!room.Participants.Contains(chatId))
                 {
                     room.Participants.Add(chatId);
-                    RoomManager.UserRoomMap[chatId] = roomId;
+                    Room.UserRoomMap[chatId] = roomId;
 
                     await Notifier.NotifyParticipants(botClient, room, $"@{userName} присоединился к комнате {roomId}!", cancellationToken);
                     Console.WriteLine($"[LOG] Пользователь {userName} присоединился к комнате {roomId}.");
@@ -137,7 +134,7 @@ namespace bunker_tg_bot.Handlers
 
         public static async Task MembersCommand(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
         {
-            if (!RoomManager.UserRoomMap.TryGetValue(chatId, out var roomId) || !RoomManager.Rooms.TryGetValue(roomId, out var room))
+            if (!Room.UserRoomMap.TryGetValue(chatId, out var roomId) || !Room.Rooms.TryGetValue(roomId, out var room))
             {
                 await botClient.SendTextMessageAsync(chatId, "Вы не находитесь в комнате.", cancellationToken: cancellationToken);
                 return;
@@ -149,7 +146,7 @@ namespace bunker_tg_bot.Handlers
 
         public static async Task LeaveCommand(ITelegramBotClient botClient, long chatId, string userName, CancellationToken cancellationToken)
         {
-            if (RoomManager.UserRoomMap.TryRemove(chatId, out var roomId) && RoomManager.Rooms.TryGetValue(roomId, out var room))
+            if (Room.UserRoomMap.TryRemove(chatId, out var roomId) && Room.Rooms.TryGetValue(roomId, out var room))
             {
                 if (room.HostId == chatId)
                 {
@@ -159,11 +156,11 @@ namespace bunker_tg_bot.Handlers
                     // Удалим комнату, если хост покидает её
                     foreach (var participant in room.Participants)
                     {
-                        RoomManager.UserRoomMap.TryRemove(participant, out _);
+                        Room.UserRoomMap.TryRemove(participant, out _);
                         await botClient.SendTextMessageAsync(participant, "Комната была удалена хостом.", cancellationToken: cancellationToken);
                     }
 
-                    RoomManager.Rooms.TryRemove(roomId, out _);
+                    Room.Rooms.TryRemove(roomId, out _);
                     Console.WriteLine($"[LOG] Комната {roomId} была удалена хостом {userName}.");
 
                     await botClient.SendTextMessageAsync(chatId, "Вы покинули комнату, и комната была удалена.", cancellationToken: cancellationToken);
@@ -186,15 +183,15 @@ namespace bunker_tg_bot.Handlers
 
         public static async Task DeleteCommand(ITelegramBotClient botClient, long chatId, string userName, CancellationToken cancellationToken)
         {
-            if (RoomManager.UserRoomMap.TryGetValue(chatId, out var roomId) && RoomManager.Rooms.TryGetValue(roomId, out var room) && room.HostId == chatId)
+            if (Room.UserRoomMap.TryGetValue(chatId, out var roomId) && Room.Rooms.TryGetValue(roomId, out var room) && room.HostId == chatId)
             {
                 foreach (var participant in room.Participants)
                 {
-                    RoomManager.UserRoomMap.TryRemove(participant, out _);
+                    Room.UserRoomMap.TryRemove(participant, out _);
                     await botClient.SendTextMessageAsync(participant, "Комната была удалена хостом.", cancellationToken: cancellationToken);
                 }
 
-                RoomManager.Rooms.TryRemove(roomId, out _);
+                Room.Rooms.TryRemove(roomId, out _);
                 Console.WriteLine($"[LOG] Комната {roomId} была удалена хостом {userName}.");
 
                 await botClient.SendTextMessageAsync(chatId, "Вы удалили комнату.", cancellationToken: cancellationToken);
@@ -207,7 +204,7 @@ namespace bunker_tg_bot.Handlers
 
         public static async Task StartGameCommand(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
         {
-            if (!RoomManager.UserRoomMap.TryGetValue(chatId, out var roomId) || !RoomManager.Rooms.TryGetValue(roomId, out var room))
+            if (!Room.UserRoomMap.TryGetValue(chatId, out var roomId) || !Room.Rooms.TryGetValue(roomId, out var room))
             {
                 await botClient.SendTextMessageAsync(chatId, "Вы не находитесь в комнате.", cancellationToken: cancellationToken);
                 return;
@@ -226,7 +223,7 @@ namespace bunker_tg_bot.Handlers
 
         public static async Task HandleGameModeSelection(ITelegramBotClient botClient, long chatId, string messageText, CancellationToken cancellationToken)
         {
-            if (!RoomManager.UserRoomMap.TryGetValue(chatId, out var roomId) || !RoomManager.Rooms.TryGetValue(roomId, out var room))
+            if (!Room.UserRoomMap.TryGetValue(chatId, out var roomId) || !Room.Rooms.TryGetValue(roomId, out var room))
             {
                 await botClient.SendTextMessageAsync(chatId, "Вы не находитесь в комнате.", cancellationToken: cancellationToken);
                 return;
@@ -266,7 +263,6 @@ namespace bunker_tg_bot.Handlers
             Console.WriteLine($"[LOG] Режим игры в комнате {roomId} установлен на {messageText}.");
         }
 
-
         private static async Task NotifyParticipants(ITelegramBotClient botClient, Room room, string message, CancellationToken cancellationToken)
         {
             var tasks = room.Participants.Select(participant =>
@@ -275,3 +271,4 @@ namespace bunker_tg_bot.Handlers
         }
     }
 }
+
