@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace bunker_tg_bot.Models
 {
@@ -288,9 +291,132 @@ namespace bunker_tg_bot.Models
                 await botClient.SendTextMessageAsync(participant, message, cancellationToken: cancellationToken);
             }
         }
+
+        public async Task CheckAllCardsSaved(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        {
+            Console.WriteLine("[LOG] Проверка всех карточек на сохранение");
+
+            if (UserCharacters.Values.All(c => c.IsSaved))
+            {
+                Console.WriteLine("[LOG] Все карточки сохранены, начинаем перемешивание");
+
+                await ShuffleCharacterAttributes(botClient, cancellationToken);
+
+                foreach (var participant in Participants)
+                {
+                    await botClient.SendTextMessageAsync(participant, "Карточки всех участников заполнены.", cancellationToken: cancellationToken);
+                }
+                Console.WriteLine("[LOG] Карточки всех участников заполнены.");
+            }
+        }
+
+
+
+
+        private async Task ShuffleCharacterAttributes(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        {
+            Console.WriteLine($"[LOG] Зашли в шафл");
+
+            var healthStatuses = new List<string>();
+            var jobs = new List<string>();
+            var baggages = new List<string>();
+            var uniqueKnowledges = new List<string>();
+            var ages = new List<int>();
+            var genders = new List<string>();
+            var races = new List<string>();
+            var phobias = new List<string>();
+            var personalities = new List<string>();
+            var hobbies = new List<string>();
+            var bodyTypes = new List<string>();
+            var fact1s = new List<string>();
+            var fact2s = new List<string>();
+
+            foreach (var character in UserCharacters.Values)
+            {
+                healthStatuses.Add(character.HealthStatus);
+                jobs.Add(character.Job);
+                baggages.Add(character.Baggage);
+                uniqueKnowledges.Add(character.UniqueKnowledge);
+                ages.Add(character.Age);
+                genders.Add(character.Gender);
+
+                if (character is MediumCharacter mediumCharacter)
+                {
+                    races.Add(mediumCharacter.Race);
+                    phobias.Add(mediumCharacter.Phobia);
+                    personalities.Add(mediumCharacter.Personality);
+                }
+
+                if (character is DetailedCharacter detailedCharacter)
+                {
+                    hobbies.Add(detailedCharacter.Hobby);
+                    bodyTypes.Add(detailedCharacter.BodyType);
+                    fact1s.Add(detailedCharacter.Fact1);
+                    fact2s.Add(detailedCharacter.Fact2);
+                }
+            }
+
+            Shuffle(healthStatuses);
+            Shuffle(jobs);
+            Shuffle(baggages);
+            Shuffle(uniqueKnowledges);
+            Shuffle(ages);
+            Shuffle(genders);
+            Shuffle(races);
+            Shuffle(phobias);
+            Shuffle(personalities);
+            Shuffle(hobbies);
+            Shuffle(bodyTypes);
+            Shuffle(fact1s);
+            Shuffle(fact2s);
+
+            int index = 0;
+            foreach (var character in UserCharacters.Values)
+            {
+                character.HealthStatus = healthStatuses[index];
+                character.Job = jobs[index];
+                character.Baggage = baggages[index];
+                character.UniqueKnowledge = uniqueKnowledges[index];
+                character.Age = ages[index];
+                character.Gender = genders[index];
+
+                if (character is MediumCharacter mediumCharacter)
+                {
+                    mediumCharacter.Race = races[index];
+                    mediumCharacter.Phobia = phobias[index];
+                    mediumCharacter.Personality = personalities[index];
+                }
+
+                if (character is DetailedCharacter detailedCharacter)
+                {
+                    detailedCharacter.Hobby = hobbies[index];
+                    detailedCharacter.BodyType = bodyTypes[index];
+                    detailedCharacter.Fact1 = fact1s[index];
+                    detailedCharacter.Fact2 = fact2s[index];
+                }
+
+                index++;
+            }
+
+            foreach (var character in UserCharacters.Values)
+            {
+                Console.WriteLine($"[LOG] Updated character: {SerializeCharacter(character)}");
+            }
+        }
+
+        private void Shuffle<T>(IList<T> list)
+        {
+            Random rng = new Random();
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rng.Next(n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+        }
     }
 }
-
-
-
 

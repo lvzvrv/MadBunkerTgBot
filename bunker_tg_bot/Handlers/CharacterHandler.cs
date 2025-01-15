@@ -270,23 +270,27 @@ namespace bunker_tg_bot.Handlers
             }
         }
 
-        private static async Task SendCharacterCard(ITelegramBotClient botClient, long chatId, Character character, CancellationToken cancellationToken)
+        private static async Task SendCharacterCard(ITelegramBotClient botClient, long chatId, Character character, CancellationToken cancellationToken, bool showActionMessage = true)
         {
             var characterData = SerializeCharacter(character);
             await botClient.SendTextMessageAsync(chatId, $"Ваша карточка:\n{characterData}", cancellationToken: cancellationToken);
 
-            var buttons = new ReplyKeyboardMarkup(new[]
+            if (showActionMessage)
             {
-                new KeyboardButton("Сохранить"),
-                new KeyboardButton("Изменить данные")
-            })
-            {
-                ResizeKeyboard = true,
-                OneTimeKeyboard = true
-            };
+                var buttons = new ReplyKeyboardMarkup(new[]
+                {
+            new KeyboardButton("Сохранить"),
+            new KeyboardButton("Изменить данные")
+        })
+                {
+                    ResizeKeyboard = true,
+                    OneTimeKeyboard = true
+                };
 
-            await botClient.SendTextMessageAsync(chatId, "Выберите действие:", replyMarkup: buttons, cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(chatId, "Выберите действие:", replyMarkup: buttons, cancellationToken: cancellationToken);
+            }
         }
+
 
         public static async Task HandlePostCompletionActions(ITelegramBotClient botClient, long chatId, Room room, string messageText, CancellationToken cancellationToken)
         {
@@ -295,16 +299,13 @@ namespace bunker_tg_bot.Handlers
             if (messageText == "Сохранить")
             {
                 var character = room.UserCharacters[chatId];
+                character.IsSaved = true; // Устанавливаем поле IsSaved в true
                 await botClient.SendTextMessageAsync(chatId, "Ваша карточка сохранена.", cancellationToken: cancellationToken);
-                await SendCharacterCard(botClient, chatId, character, cancellationToken);
+                await SendCharacterCard(botClient, chatId, character, cancellationToken, showActionMessage: false);
 
                 Console.WriteLine($"[LOG] Пользователь @{botClient.GetChatAsync(chatId).Result.Username} сохранил карточку.\n{SerializeCharacter(character)}");
 
-                if (room.UserCharacters.Values.All(c => c.Gender != null))
-                {
-                    await botClient.SendTextMessageAsync(chatId, "Все карточки заполнены.", cancellationToken: cancellationToken);
-                    Console.WriteLine("[LOG] Все карточки заполнены.");
-                }
+                await room.CheckAllCardsSaved(botClient, cancellationToken); // Вызов метода CheckAllCardsSaved
             }
             else if (messageText == "Изменить данные")
             {
@@ -333,8 +334,29 @@ namespace bunker_tg_bot.Handlers
             {
                 Console.WriteLine($"[LOG] Saving changes for chatId: {chatId}, propertyName: {propertyName}, messageText: {messageText}");
                 await room.SaveChangesAsync(botClient, chatId, messageText, cancellationToken);
+                await botClient.SendTextMessageAsync(chatId, "Изменения сохранены.", cancellationToken: cancellationToken);
             }
         }
+
+
+        private static async Task CheckAllCardsSaved(ITelegramBotClient botClient, Room room, CancellationToken cancellationToken)
+        {
+            if (room.UserCharacters.Values.All(c => c.IsSaved))
+            {
+                foreach (var participant in room.Participants)
+                {
+                    await botClient.SendTextMessageAsync(participant, "Карточки всех участников заполнены.", cancellationToken: cancellationToken);
+                }
+                Console.WriteLine("[LOG] Карточки всех участников заполнены.");
+            }
+        }
+
+
+
+
+
+
+
 
         private static string GetRussianPropertyName(string propertyName)
         {
@@ -388,13 +410,6 @@ namespace bunker_tg_bot.Handlers
                 _ => throw new ArgumentException("Unknown character type")
             };
         }
-
     }
 }
-
-
-
-
-
-
 

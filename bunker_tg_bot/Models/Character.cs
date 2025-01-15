@@ -1,54 +1,46 @@
-﻿namespace bunker_tg_bot.Models
+﻿public class Character
 {
-    public class Character
-    {
-        public string HealthStatus { get; set; }
-        public string Job { get; set; }
-        public string Baggage { get; set; }
-        public string UniqueKnowledge { get; set; }
-        public int Age { get; set; }
-        public string Gender { get; set; }
+    public string HealthStatus { get; set; }
+    public string Job { get; set; }
+    public string Baggage { get; set; }
+    public string UniqueKnowledge { get; set; }
+    public int Age { get; set; }
+    public string Gender { get; set; }
+    public bool IsSaved { get; set; } = false; // Новое поле
 
-        public override string ToString()
-        {
-            return $"Состояние здоровья: {HealthStatus}\n" +
-                   $"Работа: {Job}\n" +
-                   $"Багаж: {Baggage}\n" +
-                   $"Уникальное знание: {UniqueKnowledge}\n" +
-                   $"Возраст: {Age}\n" +
-                   $"Пол: {Gender}";
-        }
+    public override string ToString() => SerializeCharacter(this);
+
+    private string SerializeCharacter(Character character)
+    {
+        return $"Здоровье: {character.HealthStatus}\nРабота: {character.Job}\nБагаж: {character.Baggage}\nУникальное знание: {character.UniqueKnowledge}\nВозраст: {character.Age}\nПол: {character.Gender}";
     }
+}
 
-    public class MediumCharacter : Character
+public class MediumCharacter : Character
+{
+    public string Race { get; set; }
+    public string Phobia { get; set; }
+    public string Personality { get; set; }
+
+    public override string ToString() => SerializeCharacter(this);
+
+    private string SerializeCharacter(MediumCharacter character)
     {
-        public string Race { get; set; }
-        public string Phobia { get; set; }
-        public string Personality { get; set; }
-
-        public override string ToString()
-        {
-            return base.ToString() + "\n" +
-                   $"Расса: {Race}\n" +
-                   $"Фобия: {Phobia}\n" +
-                   $"Характер: {Personality}";
-        }
+        return base.ToString() + $"\nРаса: {character.Race}\nФобия: {character.Phobia}\nХарактер: {character.Personality}";
     }
+}
 
-    public class DetailedCharacter : MediumCharacter
+public class DetailedCharacter : MediumCharacter
+{
+    public string Hobby { get; set; }
+    public string BodyType { get; set; }
+    public string Fact1 { get; set; }
+    public string Fact2 { get; set; }
+
+    public override string ToString() => SerializeCharacter(this);
+
+    private string SerializeCharacter(DetailedCharacter character)
     {
-        public string Hobby { get; set; }
-        public string BodyType { get; set; }
-        public string Fact1 { get; set; }
-        public string Fact2 { get; set; }
-
-        public override string ToString()
-        {
-            return base.ToString() + "\n" +
-                   $"Хобби: {Hobby}\n" +
-                   $"Телосложение: {BodyType}\n" +
-                   $"Факт 1: {Fact1}\n" +
-                   $"Факт 2: {Fact2}";
-        }
+        return base.ToString() + $"\nХобби: {character.Hobby}\nТелосложение: {character.BodyType}\nФакт 1: {character.Fact1}\nФакт 2: {character.Fact2}";
     }
 }
