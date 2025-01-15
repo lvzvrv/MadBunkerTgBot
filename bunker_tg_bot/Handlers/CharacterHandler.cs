@@ -279,9 +279,9 @@ namespace bunker_tg_bot.Handlers
             {
                 var buttons = new ReplyKeyboardMarkup(new[]
                 {
-            new KeyboardButton("Сохранить"),
-            new KeyboardButton("Изменить данные")
-        })
+                    new KeyboardButton("Сохранить"),
+                    new KeyboardButton("Изменить данные")
+                })
                 {
                     ResizeKeyboard = true,
                     OneTimeKeyboard = true
@@ -290,7 +290,6 @@ namespace bunker_tg_bot.Handlers
                 await botClient.SendTextMessageAsync(chatId, "Выберите действие:", replyMarkup: buttons, cancellationToken: cancellationToken);
             }
         }
-
 
         public static async Task HandlePostCompletionActions(ITelegramBotClient botClient, long chatId, Room room, string messageText, CancellationToken cancellationToken)
         {
@@ -306,6 +305,9 @@ namespace bunker_tg_bot.Handlers
                 Console.WriteLine($"[LOG] Пользователь @{botClient.GetChatAsync(chatId).Result.Username} сохранил карточку.\n{SerializeCharacter(character)}");
 
                 await room.CheckAllCardsSaved(botClient, cancellationToken); // Вызов метода CheckAllCardsSaved
+
+                // Удаление кнопок после сохранения
+                await botClient.SendTextMessageAsync(chatId, "Кнопки удалены.", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: cancellationToken);
             }
             else if (messageText == "Изменить данные")
             {
@@ -338,7 +340,6 @@ namespace bunker_tg_bot.Handlers
             }
         }
 
-
         private static async Task CheckAllCardsSaved(ITelegramBotClient botClient, Room room, CancellationToken cancellationToken)
         {
             if (room.UserCharacters.Values.All(c => c.IsSaved))
@@ -350,13 +351,6 @@ namespace bunker_tg_bot.Handlers
                 Console.WriteLine("[LOG] Карточки всех участников заполнены.");
             }
         }
-
-
-
-
-
-
-
 
         private static string GetRussianPropertyName(string propertyName)
         {
@@ -412,4 +406,12 @@ namespace bunker_tg_bot.Handlers
         }
     }
 }
+
+
+
+
+
+
+
+
 

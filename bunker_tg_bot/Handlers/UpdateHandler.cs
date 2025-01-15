@@ -66,7 +66,15 @@ namespace bunker_tg_bot.Handlers
                 {
                     if (room.GameStarted && room.Participants.Contains(chatId))
                     {
-                        await CharacterHandler.HandleCharacterAttributeInput(botClient, chatId, room, messageText, cancellationToken);
+                        // Проверка, если участник отвечает на вопрос
+                        if (QuestionHandler.UserQuestions.ContainsKey(chatId))
+                        {
+                            await QuestionHandler.HandleAnswerAsync(botClient, chatId, messageText, cancellationToken);
+                        }
+                        else
+                        {
+                            await CharacterHandler.HandleCharacterAttributeInput(botClient, chatId, room, messageText, cancellationToken);
+                        }
                     }
                     else if (!room.GameStarted && room.HostId == chatId)
                     {
@@ -78,6 +86,25 @@ namespace bunker_tg_bot.Handlers
                     await botClient.SendTextMessageAsync(chatId, "Неизвестная команда.", cancellationToken: cancellationToken);
                 }
             }
+            else if (update.CallbackQuery != null)
+            {
+                var callbackQuery = update.CallbackQuery;
+                if (callbackQuery.Data == "skip_story" || callbackQuery.Data == "start_story")
+                {
+                    await HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
+                }
+            }
+        }
+
+        private static async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
+        {
+            if (Room.UserRoomMap.TryGetValue(callbackQuery.From.Id, out var roomId) && Room.Rooms.TryGetValue(roomId, out var room))
+            {
+                await room.HandleCallbackQuery(botClient, callbackQuery, cancellationToken);
+            }
         }
     }
 }
+
+
+

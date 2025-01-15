@@ -5,7 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using bunker_tg_bot.Handlers;
 
 namespace bunker_tg_bot.Models
 {
@@ -185,25 +187,25 @@ namespace bunker_tg_bot.Models
                     case "Hobby":
                         if (character is DetailedCharacter detailedCharacterHobby)
                         {
-                            detailedCharacterHobby.Hobby = null;
+                            detailedCharacterHobby = null;
                         }
                         break;
                     case "BodyType":
                         if (character is DetailedCharacter detailedCharacterBodyType)
                         {
-                            detailedCharacterBodyType.BodyType = null;
+                            detailedCharacterBodyType = null;
                         }
                         break;
                     case "Fact1":
                         if (character is DetailedCharacter detailedCharacterFact1)
                         {
-                            detailedCharacterFact1.Fact1 = null;
+                            detailedCharacterFact1 = null;
                         }
                         break;
                     case "Fact2":
                         if (character is DetailedCharacter detailedCharacterFact2)
                         {
-                            detailedCharacterFact2.Fact2 = null;
+                            detailedCharacterFact2 = null;
                         }
                         break;
                     default:
@@ -237,9 +239,9 @@ namespace bunker_tg_bot.Models
         {
             return character switch
             {
-                DetailedCharacter dc => $"Здоровье: {dc.HealthStatus}, Работа: {dc.Job}, Багаж: {dc.Baggage}, Уникальное знание: {dc.UniqueKnowledge}, Возраст: {dc.Age}, Пол: {dc.Gender}, Раса: {dc.Race}, Фобия: {dc.Phobia}, Характер: {dc.Personality}, Хобби: {dc.Hobby}, Телосложение: {dc.BodyType}, Факт 1: {dc.Fact1}, Факт 2: {dc.Fact2}",
-                MediumCharacter mc => $"Здоровье: {mc.HealthStatus}, Работа: {mc.Job}, Багаж: {mc.Baggage}, Уникальное знание: {mc.UniqueKnowledge}, Возраст: {mc.Age}, Пол: {mc.Gender}, Раса: {mc.Race}, Фобия: {mc.Phobia}, Характер: {mc.Personality}",
-                Character c => $"Здоровье: {c.HealthStatus}, Работа: {c.Job}, Багаж: {c.Baggage}, Уникальное знание: {c.UniqueKnowledge}, Возраст: {c.Age}, Пол: {c.Gender}",
+                DetailedCharacter dc => $"Здоровье: {dc.HealthStatus}\nРабота: {dc.Job}\nБагаж: {dc.Baggage}\nУникальное знание: {dc.UniqueKnowledge}\nВозраст: {dc.Age}\nПол: {dc.Gender}\nРаса: {dc.Race}\nФобия: {dc.Phobia}\nХарактер: {dc.Personality}\nХобби: {dc.Hobby}\nТелосложение: {dc.BodyType}\nФакт 1: {dc.Fact1}\nФакт 2: {dc.Fact2}",
+                MediumCharacter mc => $"Здоровье: {mc.HealthStatus}\nРабота: {mc.Job}\nБагаж: {mc.Baggage}\nУникальное знание: {mc.UniqueKnowledge}\nВозраст: {mc.Age}\nПол: {mc.Gender}\nРаса: {mc.Race}\nФобия: {mc.Phobia}\nХарактер: {mc.Personality}",
+                Character c => $"Здоровье: {c.HealthStatus}\nРабота: {c.Job}\nБагаж: {c.Baggage}\nУникальное знание: {c.UniqueKnowledge}\nВозраст: {c.Age}\nПол: {c.Gender}",
                 _ => throw new ArgumentException("Unknown character type")
             };
         }
@@ -307,11 +309,11 @@ namespace bunker_tg_bot.Models
                     await botClient.SendTextMessageAsync(participant, "Карточки всех участников заполнены.", cancellationToken: cancellationToken);
                 }
                 Console.WriteLine("[LOG] Карточки всех участников заполнены.");
+
+                // Отправка сообщения хосту
+                await AskHostForStory(botClient, cancellationToken);
             }
         }
-
-
-
 
         private async Task ShuffleCharacterAttributes(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
@@ -417,6 +419,45 @@ namespace bunker_tg_bot.Models
                 list[n] = value;
             }
         }
+
+        private async Task AskHostForStory(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        {
+            var buttons = new InlineKeyboardMarkup(new[]
+            {
+                new InlineKeyboardButton[] { InlineKeyboardButton.WithCallbackData("Начать историю", "start_story") },
+                new InlineKeyboardButton[] { InlineKeyboardButton.WithCallbackData("Пропустить", "skip_story") }
+            });
+
+            await botClient.SendTextMessageAsync(HostId, "Будете придумывать историю бункера или нет?", replyMarkup: buttons, cancellationToken: cancellationToken);
+        }
+
+        public async Task HandleCallbackQuery(ITelegramBotClient botClient, CallbackQuery callbackQuery, CancellationToken cancellationToken)
+        {
+            Console.WriteLine($"[LOG] HandleCallbackQuery called with data: {callbackQuery.Data}");
+
+            if (callbackQuery.Data == "skip_story")
+            {
+                Console.WriteLine("[LOG] Skip story selected");
+                await SendCharacterCardsToAllParticipants(botClient, cancellationToken);
+            }
+            else if (callbackQuery.Data == "start_story")
+            {
+                Console.WriteLine("[LOG] Start story selected");
+                await QuestionHandler.AssignAndAskQuestionsAsync(botClient, this, cancellationToken);
+            }
+            // Обработка других callback-запросов, если необходимо
+        }
+
+        private async Task SendCharacterCardsToAllParticipants(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        {
+            foreach (var participant in Participants)
+            {
+                if (UserCharacters.TryGetValue(participant, out var character))
+                {
+                    var characterData = SerializeCharacter(character);
+                    await botClient.SendTextMessageAsync(participant, $"Ваша карточка:\n{characterData}", cancellationToken: cancellationToken);
+                }
+            }
+        }
     }
 }
-
