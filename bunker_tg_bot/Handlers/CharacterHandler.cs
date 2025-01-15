@@ -297,17 +297,25 @@ namespace bunker_tg_bot.Handlers
 
             if (messageText == "Сохранить")
             {
+                Console.WriteLine($"[LOG] Вошли в условие 'Сохранить'");
                 var character = room.UserCharacters[chatId];
                 character.IsSaved = true; // Устанавливаем поле IsSaved в true
-                await botClient.SendTextMessageAsync(chatId, "Ваша карточка сохранена.", cancellationToken: cancellationToken);
+                await botClient.SendTextMessageAsync(chatId, "Ваша карточка сохранена, ждём других игроков", cancellationToken: cancellationToken);
                 await SendCharacterCard(botClient, chatId, character, cancellationToken, showActionMessage: false);
 
                 Console.WriteLine($"[LOG] Пользователь @{botClient.GetChatAsync(chatId).Result.Username} сохранил карточку.\n{SerializeCharacter(character)}");
 
-                await room.CheckAllCardsSaved(botClient, cancellationToken); // Вызов метода CheckAllCardsSaved
+               
+
+                // Вызов метода CheckAllCardsSaved, если все игроки ввели первую характеристику
+                if (room.UserCharacters.Values.All(c => !string.IsNullOrEmpty(c.HealthStatus)))
+                {
+                    Console.WriteLine($"[LOG] Все игроки ввели первую характеристику, вызываем CheckAllCardsSaved");
+                    await room.CheckAllCardsSaved(botClient, cancellationToken, chatId);
+                }
+                
 
                 // Удаление кнопок после сохранения
-                await botClient.SendTextMessageAsync(chatId, "Кнопки удалены.", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: cancellationToken);
             }
             else if (messageText == "Изменить данные")
             {
@@ -339,6 +347,7 @@ namespace bunker_tg_bot.Handlers
                 await botClient.SendTextMessageAsync(chatId, "Изменения сохранены.", cancellationToken: cancellationToken);
             }
         }
+
 
         private static async Task CheckAllCardsSaved(ITelegramBotClient botClient, Room room, CancellationToken cancellationToken)
         {
@@ -406,12 +415,3 @@ namespace bunker_tg_bot.Handlers
         }
     }
 }
-
-
-
-
-
-
-
-
-

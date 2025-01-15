@@ -283,6 +283,15 @@ namespace bunker_tg_bot.Models
             await botClient.SendTextMessageAsync(chatId, $"Режим игры установлен на {messageText}.", cancellationToken: cancellationToken);
             await NotifyParticipants(botClient, room, "Введите имя", cancellationToken);
 
+            // Создание карточек для всех участников
+            foreach (var participant in room.Participants)
+            {
+                if (!room.UserCharacters.ContainsKey(participant))
+                {
+                    room.UserCharacters[participant] = room.CreateCharacterByGameMode(room.GameMode);
+                }
+            }
+
             Console.WriteLine($"[LOG] Режим игры в комнате {roomId} установлен на {messageText}.");
         }
 
@@ -294,18 +303,21 @@ namespace bunker_tg_bot.Models
             }
         }
 
-        public async Task CheckAllCardsSaved(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        public async Task CheckAllCardsSaved(ITelegramBotClient botClient, CancellationToken cancellationToken, ChatId chatId)
         {
             Console.WriteLine("[LOG] Проверка всех карточек на сохранение");
 
             if (UserCharacters.Values.All(c => c.IsSaved))
             {
+                
+
                 Console.WriteLine("[LOG] Все карточки сохранены, начинаем перемешивание");
 
                 await ShuffleCharacterAttributes(botClient, cancellationToken);
 
                 foreach (var participant in Participants)
                 {
+                    await botClient.SendTextMessageAsync(participant, "Кнопки удалены.", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: cancellationToken);
                     await botClient.SendTextMessageAsync(participant, "Карточки всех участников заполнены.", cancellationToken: cancellationToken);
                 }
                 Console.WriteLine("[LOG] Карточки всех участников заполнены.");
@@ -314,6 +326,8 @@ namespace bunker_tg_bot.Models
                 await AskHostForStory(botClient, cancellationToken);
             }
         }
+
+        
 
         private async Task ShuffleCharacterAttributes(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
@@ -461,3 +475,4 @@ namespace bunker_tg_bot.Models
         }
     }
 }
+
