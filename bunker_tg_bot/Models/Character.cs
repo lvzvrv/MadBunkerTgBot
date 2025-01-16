@@ -1,5 +1,6 @@
 ﻿public class Character
 {
+    public string UserNameInput { get; set; }  // Новое поле для имени пользователя
     public string HealthStatus { get; set; }
     public string Job { get; set; }
     public string Baggage { get; set; }
@@ -12,7 +13,7 @@
 
     private string SerializeCharacter(Character character)
     {
-        return $"Здоровье: {character.HealthStatus}\nРабота: {character.Job}\nБагаж: {character.Baggage}\nУникальное знание: {character.UniqueKnowledge}\nВозраст: {character.Age}\nПол: {character.Gender}";
+        return $"Имя: {character.UserNameInput}\nЗдоровье: {character.HealthStatus}\nРабота: {character.Job}\nБагаж: {character.Baggage}\nУникальное знание: {character.UniqueKnowledge}\nВозраст: {character.Age}\nПол: {character.Gender}";
     }
 }
 

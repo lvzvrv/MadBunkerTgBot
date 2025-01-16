@@ -49,8 +49,8 @@ namespace bunker_tg_bot.Handlers
 
             var buttons = new ReplyKeyboardMarkup(new[]
             {
-                new KeyboardButton[] { "Начать игру" }
-            })
+        new KeyboardButton[] { "Начать игру" }
+    })
             {
                 ResizeKeyboard = true
             };
@@ -150,13 +150,12 @@ namespace bunker_tg_bot.Handlers
             {
                 if (room.HostId == chatId)
                 {
-                    // Хост пытается покинуть комнату
-                    room.Participants = new ConcurrentBag<long>(room.Participants.Where(id => id != chatId));
-
-                    // Удалим комнату, если хост покидает её
+                    // Хост покидает комнату
                     foreach (var participant in room.Participants)
                     {
                         Room.UserRoomMap.TryRemove(participant, out _);
+                        room.UserCharacters.TryRemove(participant, out _); // Удаляем персонажа пользователя
+                        room.UserEditState.TryRemove(participant, out _); // Удаляем состояние редактирования
                         await botClient.SendTextMessageAsync(participant, "Комната была удалена хостом.", cancellationToken: cancellationToken);
                     }
 
@@ -169,6 +168,8 @@ namespace bunker_tg_bot.Handlers
                 {
                     // Участник покидает комнату
                     room.Participants = new ConcurrentBag<long>(room.Participants.Where(id => id != chatId));
+                    room.UserCharacters.TryRemove(chatId, out _); // Удаляем персонажа пользователя
+                    room.UserEditState.TryRemove(chatId, out _); // Удаляем состояние редактирования
                     await Notifier.NotifyParticipants(botClient, room, $"@{userName} покинул комнату.", cancellationToken);
                     Console.WriteLine($"[LOG] Пользователь {userName} покинул комнату {roomId}.");
 
@@ -188,6 +189,8 @@ namespace bunker_tg_bot.Handlers
                 foreach (var participant in room.Participants)
                 {
                     Room.UserRoomMap.TryRemove(participant, out _);
+                    room.UserCharacters.TryRemove(participant, out _); // Удаляем персонажа пользователя
+                    room.UserEditState.TryRemove(participant, out _); // Удаляем состояние редактирования
                     await botClient.SendTextMessageAsync(participant, "Комната была удалена хостом.", cancellationToken: cancellationToken);
                 }
 
@@ -202,23 +205,43 @@ namespace bunker_tg_bot.Handlers
             }
         }
 
+
+
         public static async Task StartGameCommand(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
         {
-            if (!Room.UserRoomMap.TryGetValue(chatId, out var roomId) || !Room.Rooms.TryGetValue(roomId, out var room))
+            if (Room.UserRoomMap.TryGetValue(chatId, out var roomId) && Room.Rooms.TryGetValue(roomId, out var room))
             {
-                await botClient.SendTextMessageAsync(chatId, "Вы не находитесь в комнате.", cancellationToken: cancellationToken);
-                return;
-            }
+                if (room.HostId != chatId)
+                {
+                    await botClient.SendTextMessageAsync(chatId, "Только хост может начать игру.", cancellationToken: cancellationToken);
+                    return;
+                }
 
-            if (room.HostId != chatId)
+                room.GameStarted = true;
+                await botClient.SendTextMessageAsync(chatId, "Игра началась! Введите имя", cancellationToken: cancellationToken);
+
+                // Создание карточек для всех участников
+                foreach (var participant in room.Participants)
+                {
+                    if (!room.UserCharacters.ContainsKey(participant))
+                    {
+                        room.UserCharacters[participant] = room.CreateCharacterByGameMode(room.GameMode);
+                    }
+                }
+
+                // Запрос имени у всех участников
+                foreach (var participant in room.Participants)
+                {
+                    await botClient.SendTextMessageAsync(participant, "Введите имя:", cancellationToken: cancellationToken);
+                    room.UserEditState[participant] = "UserNameInput";
+                }
+
+                Console.WriteLine($"[LOG] Игра в комнате {roomId} началась.");
+            }
+            else
             {
-                await botClient.SendTextMessageAsync(chatId, "Только хост комнаты может начать игру.", cancellationToken: cancellationToken);
-                return;
+                await botClient.SendTextMessageAsync(chatId, "Вы не находитесь в комнате или комната не найдена.", cancellationToken: cancellationToken);
             }
-
-            room.GameStarted = true;
-            await NotifyParticipants(botClient, room, "Игра началась! Введите ваше имя.", cancellationToken);
-            Console.WriteLine($"[LOG] Игра в комнате {roomId} началась.");
         }
 
         public static async Task HandleGameModeSelection(ITelegramBotClient botClient, long chatId, string messageText, CancellationToken cancellationToken)
@@ -257,6 +280,11 @@ namespace bunker_tg_bot.Handlers
                     return;
             }
 
+            // Очистка данных предыдущей комнаты
+            room.UserNames.Clear();
+            room.UserCharacters.Clear();
+            room.UserEditState.Clear();
+
             await botClient.SendTextMessageAsync(chatId, $"Режим игры установлен на {messageText}.", cancellationToken: cancellationToken);
             await NotifyParticipants(botClient, room, "Введите ваше состояние здоровья.", cancellationToken);
 
@@ -271,4 +299,5 @@ namespace bunker_tg_bot.Handlers
         }
     }
 }
+
 

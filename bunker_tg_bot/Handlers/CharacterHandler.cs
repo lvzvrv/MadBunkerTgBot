@@ -17,14 +17,7 @@ namespace bunker_tg_bot.Handlers
         {
             Console.WriteLine($"[LOG] HandleCharacterAttributeInput called for chatId: {chatId}, messageText: {messageText}");
 
-            if (!UserNames.ContainsKey(chatId.ToString()))
-            {
-                UserNames[chatId.ToString()] = messageText;
-                Console.WriteLine($"[LOG] Пользователь @{chatId} ввел имя: {messageText}");
-                await botClient.SendTextMessageAsync(chatId, "Введите ваше состояние здоровья.", cancellationToken: cancellationToken);
-                return;
-            }
-
+            // Инициализация персонажа, если еще не создан
             if (!room.UserCharacters.ContainsKey(chatId))
             {
                 switch (room.GameMode)
@@ -39,19 +32,35 @@ namespace bunker_tg_bot.Handlers
                         room.UserCharacters[chatId] = new DetailedCharacter();
                         break;
                 }
+
+                // Запросить имя пользователя
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше имя:", cancellationToken: cancellationToken);
+                room.UserEditState[chatId] = "UserNameInput";
+                return;
             }
 
             var character = room.UserCharacters[chatId];
 
+            // Обработка состояния редактирования
             if (room.UserEditState.TryGetValue(chatId, out var editField))
             {
                 await room.SaveChangesAsync(botClient, chatId, messageText, cancellationToken);
-                room.UserEditState.TryRemove(chatId, out _);
-                await botClient.SendTextMessageAsync(chatId, "Изменения сохранены. Выберите действие:", cancellationToken: cancellationToken);
-                await SendCharacterCard(botClient, chatId, character, cancellationToken);
+
+                if (editField == "UserNameInput")
+                {
+                    await botClient.SendTextMessageAsync(chatId, "Введите ваше состояние здоровья:", cancellationToken: cancellationToken);
+                    room.UserEditState[chatId] = "HealthStatus";
+                }
+                else
+                {
+                    room.UserEditState.TryRemove(chatId, out _);
+                    await botClient.SendTextMessageAsync(chatId, "Изменения сохранены. Выберите действие:", cancellationToken: cancellationToken);
+                    await SendCharacterCard(botClient, chatId, character, cancellationToken);
+                }
                 return;
             }
 
+            // Обработка ввода в зависимости от режима игры
             switch (room.GameMode)
             {
                 case GameMode.Quick:
@@ -70,6 +79,12 @@ namespace bunker_tg_bot.Handlers
         {
             Console.WriteLine($"[LOG] HandleQuickModeInput called for chatId: {chatId}, messageText: {messageText}");
 
+            if (string.IsNullOrEmpty(character.UserNameInput))
+            {
+                character.UserNameInput = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше здоровье.", cancellationToken: cancellationToken);
+                return;
+            }
             if (string.IsNullOrEmpty(character.HealthStatus))
             {
                 character.HealthStatus = messageText;

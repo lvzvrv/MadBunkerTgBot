@@ -35,30 +35,49 @@ namespace bunker_tg_bot.Models
 
                 switch (editField)
                 {
+                    case "UserNameInput":
+                        character.UserNameInput = message;
+                        UserEditState[chatId] = "HealthStatus";
+                        await botClient.SendTextMessageAsync(chatId, "Введите состояние здоровья:", cancellationToken: cancellationToken);
+                        break;
                     case "HealthStatus":
                         character.HealthStatus = message;
+                        UserEditState[chatId] = "Job";
+                        await botClient.SendTextMessageAsync(chatId, "Введите работу:", cancellationToken: cancellationToken);
                         break;
                     case "Job":
                         character.Job = message;
+                        UserEditState[chatId] = "Baggage";
+                        await botClient.SendTextMessageAsync(chatId, "Введите багаж:", cancellationToken: cancellationToken);
                         break;
                     case "Baggage":
                         character.Baggage = message;
+                        UserEditState[chatId] = "UniqueKnowledge";
+                        await botClient.SendTextMessageAsync(chatId, "Введите уникальное знание:", cancellationToken: cancellationToken);
                         break;
                     case "UniqueKnowledge":
                         character.UniqueKnowledge = message;
+                        UserEditState[chatId] = "Age";
+                        await botClient.SendTextMessageAsync(chatId, "Введите возраст:", cancellationToken: cancellationToken);
                         break;
                     case "Age":
                         if (int.TryParse(message, out var age))
                         {
                             character.Age = age;
+                            UserEditState[chatId] = "Gender";
+                            await botClient.SendTextMessageAsync(chatId, "Введите пол:", cancellationToken: cancellationToken);
                         }
                         else
                         {
                             Console.WriteLine($"[LOG] Invalid age value: {message}");
+                            await botClient.SendTextMessageAsync(chatId, "Неверное значение возраста. Попробуйте еще раз:", cancellationToken: cancellationToken);
                         }
                         break;
                     case "Gender":
                         character.Gender = message;
+                        UserEditState.TryRemove(chatId, out _);
+                        character.IsSaved = true;
+                        await botClient.SendTextMessageAsync(chatId, "Персонаж сохранен.", cancellationToken: cancellationToken);
                         break;
                     case "Race":
                         if (character is MediumCharacter mediumCharacter)
@@ -119,9 +138,7 @@ namespace bunker_tg_bot.Models
                         return;
                 }
 
-                UserEditState.TryRemove(chatId, out _);
                 Console.WriteLine($"[LOG] Changes saved for chatId: {chatId}, character: {SerializeCharacter(character)}");
-                await botClient.SendTextMessageAsync(chatId, "Изменения сохранены.", cancellationToken: cancellationToken);
             }
             else
             {
@@ -224,7 +241,7 @@ namespace bunker_tg_bot.Models
             }
         }
 
-        private Character CreateCharacterByGameMode(GameMode gameMode)
+        public Character CreateCharacterByGameMode(GameMode gameMode)
         {
             return gameMode switch
             {
@@ -239,9 +256,9 @@ namespace bunker_tg_bot.Models
         {
             return character switch
             {
-                DetailedCharacter dc => $"Здоровье: {dc.HealthStatus}\nРабота: {dc.Job}\nБагаж: {dc.Baggage}\nУникальное знание: {dc.UniqueKnowledge}\nВозраст: {dc.Age}\nПол: {dc.Gender}\nРаса: {dc.Race}\nФобия: {dc.Phobia}\nХарактер: {dc.Personality}\nХобби: {dc.Hobby}\nТелосложение: {dc.BodyType}\nФакт 1: {dc.Fact1}\nФакт 2: {dc.Fact2}",
-                MediumCharacter mc => $"Здоровье: {mc.HealthStatus}\nРабота: {mc.Job}\nБагаж: {mc.Baggage}\nУникальное знание: {mc.UniqueKnowledge}\nВозраст: {mc.Age}\nПол: {mc.Gender}\nРаса: {mc.Race}\nФобия: {mc.Phobia}\nХарактер: {mc.Personality}",
-                Character c => $"Здоровье: {c.HealthStatus}\nРабота: {c.Job}\nБагаж: {c.Baggage}\nУникальное знание: {c.UniqueKnowledge}\nВозраст: {c.Age}\nПол: {c.Gender}",
+                DetailedCharacter dc => $"Имя: {dc.UserNameInput}\nЗдоровье: {dc.HealthStatus}\nРабота: {dc.Job}\nБагаж: {dc.Baggage}\nУникальное знание: {dc.UniqueKnowledge}\nВозраст: {dc.Age}\nПол: {dc.Gender}\nРаса: {dc.Race}\nФобия: {dc.Phobia}\nХарактер: {dc.Personality}\nХобби: {dc.Hobby}\nТелосложение: {dc.BodyType}\nФакт 1: {dc.Fact1}\nФакт 2: {dc.Fact2}",
+                MediumCharacter mc => $"Имя: {mc.UserNameInput}\nЗдоровье: {mc.HealthStatus}\nРабота: {mc.Job}\nБагаж: {mc.Baggage}\nУникальное знание: {mc.UniqueKnowledge}\nВозраст: {mc.Age}\nПол: {mc.Gender}\nРаса: {mc.Race}\nФобия: {mc.Phobia}\nХарактер: {mc.Personality}",
+                Character c => $"Имя: {c.UserNameInput}\nЗдоровье: {c.HealthStatus}\nРабота: {c.Job}\nБагаж: {c.Baggage}\nУникальное знание: {c.UniqueKnowledge}\nВозраст: {c.Age}\nПол: {c.Gender}",
                 _ => throw new ArgumentException("Unknown character type")
             };
         }
