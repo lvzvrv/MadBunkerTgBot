@@ -133,6 +133,12 @@ namespace bunker_tg_bot.Handlers
         {
             Console.WriteLine($"[LOG] HandleMediumModeInput called for chatId: {chatId}, messageText: {messageText}");
 
+            if (string.IsNullOrEmpty(character.UserNameInput))
+            {
+                character.UserNameInput = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше здоровье.", cancellationToken: cancellationToken);
+                return;
+            }
             if (string.IsNullOrEmpty(character.HealthStatus))
             {
                 character.HealthStatus = messageText;
@@ -199,6 +205,12 @@ namespace bunker_tg_bot.Handlers
         {
             Console.WriteLine($"[LOG] HandleDetailedModeInput called for chatId: {chatId}, messageText: {messageText}");
 
+            if (string.IsNullOrEmpty(character.UserNameInput))
+            {
+                character.UserNameInput = messageText;
+                await botClient.SendTextMessageAsync(chatId, "Введите ваше здоровье.", cancellationToken: cancellationToken);
+                return;
+            }
             if (string.IsNullOrEmpty(character.HealthStatus))
             {
                 character.HealthStatus = messageText;
