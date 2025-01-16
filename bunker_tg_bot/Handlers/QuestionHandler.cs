@@ -57,11 +57,11 @@ namespace bunker_tg_bot.Handlers
                 var participant = assignment.Key;
                 UserQuestions[participant] = assignment.Value;
                 UserAnswers[participant] = new Dictionary<string, string>();
-                await AskNextQuestion(botClient, participant, cancellationToken);
+                await AskNextQuestion(botClient, participant, room, cancellationToken);
             }
         }
 
-        private static async Task AskNextQuestion(ITelegramBotClient botClient, long participant, CancellationToken cancellationToken)
+        private static async Task AskNextQuestion(ITelegramBotClient botClient, long participant, Room room, CancellationToken cancellationToken)
         {
             if (UserQuestions.TryGetValue(participant, out var questions) && questions.Any())
             {
@@ -72,11 +72,11 @@ namespace bunker_tg_bot.Handlers
             else
             {
                 await botClient.SendTextMessageAsync(participant, "Вы ответили на все вопросы, ожидайте пока другие закончат.", cancellationToken: cancellationToken);
-                await CheckAllAnswersCollected(botClient, cancellationToken);
+                await CheckAllAnswersCollected(botClient, room, cancellationToken);
             }
         }
 
-        public static async Task HandleAnswerAsync(ITelegramBotClient botClient, long participant, string answer, CancellationToken cancellationToken)
+        public static async Task HandleAnswerAsync(ITelegramBotClient botClient, long participant, string answer, Room room, CancellationToken cancellationToken)
         {
             if (AllAnswersCollected)
             {
@@ -87,11 +87,11 @@ namespace bunker_tg_bot.Handlers
             {
                 Console.WriteLine($"[LOG] Saving answer for participant {participant}: {currentQuestion} = {answer}");
                 answers[currentQuestion] = answer;
-                await AskNextQuestion(botClient, participant, cancellationToken);
+                await AskNextQuestion(botClient, participant, room, cancellationToken);
             }
         }
 
-        private static async Task CheckAllAnswersCollected(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        private static async Task CheckAllAnswersCollected(ITelegramBotClient botClient, Room room, CancellationToken cancellationToken)
         {
             Console.WriteLine("[LOG] Checking if all answers are collected");
             foreach (var participant in UserAnswers.Keys)
@@ -105,7 +105,9 @@ namespace bunker_tg_bot.Handlers
                 Console.WriteLine("[LOG] All answers collected, forming final text");
                 var finalText = FormFinalText();
                 Console.WriteLine($"[LOG] Final text: {finalText}");
-                await SendFinalTextToAllParticipants(botClient, finalText, cancellationToken);
+
+                // Передача экземпляра room в метод SendFinalTextToAllParticipants
+                await QuestionHandler.SendFinalTextToAllParticipants(botClient, finalText, cancellationToken, room);
             }
         }
 
@@ -124,24 +126,16 @@ namespace bunker_tg_bot.Handlers
             return finalText;
         }
 
-        private static async Task SendFinalTextToAllParticipants(ITelegramBotClient botClient, string finalText, CancellationToken cancellationToken)
+        public static async Task SendFinalTextToAllParticipants(ITelegramBotClient botClient, string finalText, CancellationToken cancellationToken, Room room)
         {
-            foreach (var participant in UserQuestions.Keys)
+            foreach (var participant in room.Participants)
             {
                 await botClient.SendTextMessageAsync(participant, "Все ответы получены", cancellationToken: cancellationToken);
                 await botClient.SendTextMessageAsync(participant, finalText, cancellationToken: cancellationToken);
             }
+
+            // Вызов метода для отправки карточек всем участникам
+            await room.SendCharacterCardsToAllParticipants(botClient, cancellationToken);
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-

@@ -516,7 +516,7 @@ namespace bunker_tg_bot.Models
             // Обработка других callback-запросов, если необходимо
         }
 
-        private async Task SendCharacterCardsToAllParticipants(ITelegramBotClient botClient, CancellationToken cancellationToken)
+        public async Task SendCharacterCardsToAllParticipants(ITelegramBotClient botClient, CancellationToken cancellationToken)
         {
             foreach (var participant in Participants)
             {

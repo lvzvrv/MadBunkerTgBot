@@ -69,7 +69,7 @@ namespace bunker_tg_bot.Handlers
                         // Проверка, если участник отвечает на вопрос
                         if (QuestionHandler.UserQuestions.ContainsKey(chatId))
                         {
-                            await QuestionHandler.HandleAnswerAsync(botClient, chatId, messageText, cancellationToken);
+                            await QuestionHandler.HandleAnswerAsync(botClient, chatId, messageText, room, cancellationToken);
                         }
                         else
                         {
@@ -105,6 +105,3 @@ namespace bunker_tg_bot.Handlers
         }
     }
 }
-
-
-
