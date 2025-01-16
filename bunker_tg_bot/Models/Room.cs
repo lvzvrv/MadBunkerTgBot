@@ -241,6 +241,43 @@ namespace bunker_tg_bot.Models
             }
         }
 
+        public async Task ResetCharacterAttributes(ITelegramBotClient botClient, long chatId, CancellationToken cancellationToken)
+        {
+            if (UserCharacters.TryGetValue(chatId, out var character))
+            {
+                character.UserNameInput = null;
+                character.HealthStatus = null;
+                character.Job = null;
+                character.Baggage = null;
+                character.UniqueKnowledge = null;
+                character.Age = 0;
+                character.Gender = null;
+
+                if (character is MediumCharacter mediumCharacter)
+                {
+                    mediumCharacter.Race = null;
+                    mediumCharacter.Phobia = null;
+                    mediumCharacter.Personality = null;
+                }
+
+                if (character is DetailedCharacter detailedCharacter)
+                {
+                    detailedCharacter.Hobby = null;
+                    detailedCharacter.BodyType = null;
+                    detailedCharacter.Fact1 = null;
+                    detailedCharacter.Fact2 = null;
+                }
+
+                Console.WriteLine($"[LOG] Attributes reset for chatId: {chatId}");
+                
+            }
+            else
+            {
+                Console.WriteLine($"[LOG] No character found for chatId: {chatId}");
+                
+            }
+        }
+
         public Character CreateCharacterByGameMode(GameMode gameMode)
         {
             return gameMode switch

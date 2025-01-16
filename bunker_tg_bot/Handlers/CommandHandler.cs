@@ -154,6 +154,7 @@ namespace bunker_tg_bot.Handlers
                     foreach (var participant in room.Participants)
                     {
                         Room.UserRoomMap.TryRemove(participant, out _);
+                        await room.ResetCharacterAttributes(botClient, participant, cancellationToken); // Сбрасываем все характеристики персонажа
                         room.UserCharacters.TryRemove(participant, out _); // Удаляем персонажа пользователя
                         room.UserEditState.TryRemove(participant, out _); // Удаляем состояние редактирования
                         await botClient.SendTextMessageAsync(participant, "Комната была удалена хостом.", cancellationToken: cancellationToken);
@@ -168,6 +169,7 @@ namespace bunker_tg_bot.Handlers
                 {
                     // Участник покидает комнату
                     room.Participants = new ConcurrentBag<long>(room.Participants.Where(id => id != chatId));
+                    await room.ResetCharacterAttributes(botClient, chatId, cancellationToken); // Сбрасываем все характеристики персонажа
                     room.UserCharacters.TryRemove(chatId, out _); // Удаляем персонажа пользователя
                     room.UserEditState.TryRemove(chatId, out _); // Удаляем состояние редактирования
                     await Notifier.NotifyParticipants(botClient, room, $"@{userName} покинул комнату.", cancellationToken);
@@ -189,6 +191,7 @@ namespace bunker_tg_bot.Handlers
                 foreach (var participant in room.Participants)
                 {
                     Room.UserRoomMap.TryRemove(participant, out _);
+                    await room.ResetCharacterAttributes(botClient, participant, cancellationToken); // Сбрасываем все характеристики персонажа
                     room.UserCharacters.TryRemove(participant, out _); // Удаляем персонажа пользователя
                     room.UserEditState.TryRemove(participant, out _); // Удаляем состояние редактирования
                     await botClient.SendTextMessageAsync(participant, "Комната была удалена хостом.", cancellationToken: cancellationToken);
